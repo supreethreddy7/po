@@ -499,7 +499,10 @@ static bool
 
     BufferDesc *StrategyGetBuffer(BufferAccessStrategy strategy, uint32 *buf_state)
     {
-        BufferDesc *buf = StrategyControl->lruHead;
+        
+    extern BufferStrategyControl *StrategyControl;
+    BufferDesc *buf = StrategyControl->lruHead;
+    
 
         if (buf)
         {
@@ -1781,7 +1784,10 @@ static bool
 
     BufferDesc *StrategyGetBuffer(BufferAccessStrategy strategy, uint32 *buf_state)
     {
-        BufferDesc *buf = StrategyControl->lruHead;
+        
+    extern BufferStrategyControl *StrategyControl;
+    BufferDesc *buf = StrategyControl->lruHead;
+    
 
         if (buf)
         {
@@ -4977,4 +4983,35 @@ TestForOldSnapshot_impl(Snapshot snapshot, Relation relation)
 		ereport(ERROR,
 				(errcode(ERRCODE_SNAPSHOT_TOO_OLD),
 				 errmsg("snapshot too old")));
+}
+
+static void AddToLRU(BufferDesc *buf)
+{
+    if (StrategyControl->lruTail)
+    {
+        StrategyControl->lruTail->next = buf;
+        buf->prev = StrategyControl->lruTail;
+        buf->next = NULL;
+        StrategyControl->lruTail = buf;
+    }
+    else
+    {
+        StrategyControl->lruHead = StrategyControl->lruTail = buf;
+        buf->next = buf->prev = NULL;
+    }
+}
+
+static void RemoveFromLRU(BufferDesc *buf)
+{
+    if (buf->prev)
+        buf->prev->next = buf->next;
+    else
+        StrategyControl->lruHead = buf->next;
+
+    if (buf->next)
+        buf->next->prev = buf->prev;
+    else
+        StrategyControl->lruTail = buf->prev;
+
+    buf->next = buf->prev = NULL;
 }
