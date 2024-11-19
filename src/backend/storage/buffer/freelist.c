@@ -1,4 +1,3 @@
-// Modified freelist.c file
 /*-------------------------------------------------------------------------
  *
  * freelist.c
@@ -702,4 +701,36 @@ StrategyRejectBuffer(BufferAccessStrategy strategy, BufferDesc *buf)
 	strategy->buffers[strategy->current] = InvalidBuffer;
 
 	return true;
+}
+
+void AddToLRU(BufferDesc *buf)
+{
+    if (StrategyControl->lruTail)
+    {
+        StrategyControl->lruTail->next = buf;
+        buf->prev = StrategyControl->lruTail;
+        buf->next = NULL;
+        StrategyControl->lruTail = buf;
+    }
+    else
+    {
+        // LRU queue is empty
+        StrategyControl->lruHead = StrategyControl->lruTail = buf;
+        buf->next = buf->prev = NULL;
+    }
+}
+
+void RemoveFromLRU(BufferDesc *buf)
+{
+    if (buf->prev)
+        buf->prev->next = buf->next;
+    else
+        StrategyControl->lruHead = buf->next;
+
+    if (buf->next)
+        buf->next->prev = buf->prev;
+    else
+        StrategyControl->lruTail = buf->prev;
+
+    buf->next = buf->prev = NULL;
 }

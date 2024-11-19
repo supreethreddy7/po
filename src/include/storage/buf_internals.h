@@ -1,4 +1,3 @@
-// Modified buf_internals.h file
 /*-------------------------------------------------------------------------
  *
  * buf_internals.h
@@ -343,4 +342,8 @@ extern void DropRelFileNodeLocalBuffers(RelFileNode rnode, ForkNumber forkNum,
 extern void DropRelFileNodeAllLocalBuffers(RelFileNode rnode);
 extern void AtEOXact_LocalBuffers(bool isCommit);
 
-#endif							/* BUFMGR_INTERNALS_H */
+
+    void AddToLRU(struct BufferDesc *buf);
+    void RemoveFromLRU(struct BufferDesc *buf);
+    #endif
+    							/* BUFMGR_INTERNALS_H */

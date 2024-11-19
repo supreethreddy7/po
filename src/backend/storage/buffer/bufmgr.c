@@ -1,4 +1,3 @@
-// Modified bufmgr.c file
 /*-------------------------------------------------------------------------
  *
  * bufmgr.c
@@ -462,7 +461,57 @@ static Buffer ReadBuffer_common(SMgrRelation reln, char relpersistence,
 								ForkNumber forkNum, BlockNumber blockNum,
 								ReadBufferMode mode, BufferAccessStrategy strategy,
 								bool *hit);
-static bool PinBuffer(BufferDesc *buf, BufferAccessStrategy strategy);
+static bool 
+    static bool PinBuffer(BufferDesc *buf, BufferAccessStrategy strategy)
+    {
+        uint32 buf_state = LockBufHdr(buf);
+
+        if (BUF_STATE_GET_REFCOUNT(buf_state) == 0)
+        {
+            RemoveFromLRU(buf);  // Remove from LRU queue when pinned
+        }
+
+        buf_state += BUF_REFCOUNT_ONE;
+        UnlockBufHdr(buf, buf_state);
+
+        return true;
+    }
+
+    void UnpinBuffer(BufferDesc *buf, bool fixOwner)
+    {
+        uint32 buf_state = LockBufHdr(buf);
+
+        buf_state -= BUF_REFCOUNT_ONE;
+
+        if (BUF_STATE_GET_REFCOUNT(buf_state) == 0)
+        {
+            AddToLRU(buf);  // Add back to LRU queue when unpinned
+        }
+
+        UnlockBufHdr(buf, buf_state);
+    }
+
+    void StrategyFreeBuffer(BufferDesc *buf)
+    {
+        elog(LOG, "Add buf %d\n", buf->buf_id);
+        AddToLRU(buf);
+    }
+
+    BufferDesc *StrategyGetBuffer(BufferAccessStrategy strategy, uint32 *buf_state)
+    {
+        BufferDesc *buf = StrategyControl->lruHead;
+
+        if (buf)
+        {
+            elog(LOG, "Get buf %d\n", buf->buf_id);
+            RemoveFromLRU(buf);
+        }
+
+        return buf;
+    }
+
+    PinBuffer(BufferDesc *buf
+    , BufferAccessStrategy strategy);
 static void PinBuffer_Locked(BufferDesc *buf);
 static void UnpinBuffer(BufferDesc *buf, bool fixOwner);
 static void BufferSync(int flags);
@@ -1694,7 +1743,57 @@ ReleaseAndReadBuffer(Buffer buffer,
  * some callers to avoid an extra spinlock cycle.
  */
 static bool
-PinBuffer(BufferDesc *buf, BufferAccessStrategy strategy)
+
+    static bool PinBuffer(BufferDesc *buf, BufferAccessStrategy strategy)
+    {
+        uint32 buf_state = LockBufHdr(buf);
+
+        if (BUF_STATE_GET_REFCOUNT(buf_state) == 0)
+        {
+            RemoveFromLRU(buf);  // Remove from LRU queue when pinned
+        }
+
+        buf_state += BUF_REFCOUNT_ONE;
+        UnlockBufHdr(buf, buf_state);
+
+        return true;
+    }
+
+    void UnpinBuffer(BufferDesc *buf, bool fixOwner)
+    {
+        uint32 buf_state = LockBufHdr(buf);
+
+        buf_state -= BUF_REFCOUNT_ONE;
+
+        if (BUF_STATE_GET_REFCOUNT(buf_state) == 0)
+        {
+            AddToLRU(buf);  // Add back to LRU queue when unpinned
+        }
+
+        UnlockBufHdr(buf, buf_state);
+    }
+
+    void StrategyFreeBuffer(BufferDesc *buf)
+    {
+        elog(LOG, "Add buf %d\n", buf->buf_id);
+        AddToLRU(buf);
+    }
+
+    BufferDesc *StrategyGetBuffer(BufferAccessStrategy strategy, uint32 *buf_state)
+    {
+        BufferDesc *buf = StrategyControl->lruHead;
+
+        if (buf)
+        {
+            elog(LOG, "Get buf %d\n", buf->buf_id);
+            RemoveFromLRU(buf);
+        }
+
+        return buf;
+    }
+
+    PinBuffer(BufferDesc *buf
+    , BufferAccessStrategy strategy)
 {
 	Buffer		b = BufferDescriptorGetBuffer(buf);
 	bool		result;
