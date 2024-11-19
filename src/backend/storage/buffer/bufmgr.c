@@ -76,7 +76,9 @@
  * being dropped. For the relations with size below this threshold, we find
  * the buffers by doing lookups in BufMapping table.
  */
-#define BUF_DROP_FULL_SCAN_THRESHOLD		(uint64) (NBuffers / 32)
+#define BUF_DROP_FULL_SCAN_THRESHOLD		(uint64) (NBuffers / 32
+extern BufferStrategyControl *StrategyControl;
+
 
 typedef struct PrivateRefCountEntry
 {
@@ -500,7 +502,6 @@ static bool
     BufferDesc *StrategyGetBuffer(BufferAccessStrategy strategy, uint32 *buf_state)
     {
         
-    extern BufferStrategyControl *StrategyControl;
     BufferDesc *buf = StrategyControl->lruHead;
     
 
@@ -4987,7 +4988,7 @@ TestForOldSnapshot_impl(Snapshot snapshot, Relation relation)
 
 static void AddToLRU(BufferDesc *buf)
 {
-    if (StrategyControl->lruTail)
+   if (StrategyControl->lruTail)
     {
         StrategyControl->lruTail->next = buf;
         buf->prev = StrategyControl->lruTail;
